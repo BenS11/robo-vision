@@ -8,10 +8,10 @@ I hope to eventually integrate this into a miniature robot, whose purpose is TBD
 
 What exactly this project can do is also TBD, but my aims are:
 
-Real Time Object Tracking
-Distance Estimation
-Camera Cal
-Robotic Integration
+- Real Time Object Tracking
+- Distance Estimation
+- Camera Cal
+- Robotic Integration
 
 ## Tech Stack
 
