@@ -1,0 +1,17 @@
+import cv2
+
+
+def find_camera_indices():
+    indices = []
+
+    for i in range(0, 25):
+        cam = cv2.VideoCapture(i)
+
+        if cam.isOpened():
+            indices.append(i)
+        cam.release()
+    return indices
+
+
+if __name__ == "__main__":
+    print("Found camera(s) at:" + str(find_camera_indices()))
