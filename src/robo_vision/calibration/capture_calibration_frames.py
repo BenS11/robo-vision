@@ -1,6 +1,7 @@
 import cv2
 import os
-from ..camera import Camera
+import shutil
+from robo_vision.camera import Camera
 
 GRID_SIZE = (9, 6)
 
@@ -20,14 +21,18 @@ def capture_calibration(camera):
     camera_dir = camera.get_camera_info_path()
 
     image_dir = ""
-    dir_count = 1
     while True:
         try:
-            image_dir = os.path.join(camera_dir, "calibration_images", f"image_session{dir_count}")
+            image_dir = os.path.join(camera_dir, "calibration", "calibration_images")
             os.makedirs(image_dir)
             break
         except FileExistsError:
-            dir_count += 1
+            yes = input(f"Overwrite saved images in {image_dir}? Y/N?:")
+            if yes.lower() == "y":
+                shutil.rmtree(image_dir)
+            else:
+                print("Can only only maintain one calibration")
+                return
     # <-- 
 
     
@@ -35,7 +40,7 @@ def capture_calibration(camera):
 
     
     while True:
-        ret, img = camera.read()
+        ret, img = camera.get_frame()
         save_copy = img.copy()
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -78,4 +83,4 @@ def capture_calibration(camera):
 
 
 if __name__ == "__main__":
-    capture_calibration(Camera(0))
+    capture_calibration(Camera("precision_3490_builtin"))
