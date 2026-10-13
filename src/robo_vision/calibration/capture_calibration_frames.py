@@ -1,32 +1,38 @@
 import cv2
 import os
+import shutil
+from robo_vision.camera import Camera
 
 GRID_SIZE = (9, 6)
 
 # Default port, run detect_camera to find cameras on other ports
 CAMERA_PORT = 0
 
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 40, 0.001)
 
 def capture_calibration(camera):
 
     #Whether to draw all captured corners (T) or just the most recent set (F)
     draw_collected_corners = True
 
-    camera = cv2.VideoCapture(CAMERA_PORT)
     image_count = 0
 
     # Create the directory for writing captured images to -->
-    images_dir_path = os.path.dirname(os.path.abspath(__file__)) + "/calibration_images"
+    camera_dir = camera.get_camera_info_path()
 
     image_dir = ""
-    dir_count = 1
     while True:
         try:
-            image_dir = os.path.join(script_dir_path, f"image_session{dir_count}")
+            image_dir = os.path.join(camera_dir, "calibration", "calibration_images")
             os.makedirs(image_dir)
             break
-        except:
-            dir_count += 1
+        except FileExistsError:
+            yes = input(f"Overwrite saved images in {image_dir}? Y/N?:")
+            if yes.lower() == "y":
+                shutil.rmtree(image_dir)
+            else:
+                print("Can only only maintain one calibration")
+                return
     # <-- 
 
     
@@ -34,7 +40,7 @@ def capture_calibration(camera):
 
     
     while True:
-        ret, img = camera.read()
+        ret, img = camera.get_frame()
         save_copy = img.copy()
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -43,7 +49,7 @@ def capture_calibration(camera):
         if found:
             corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
-        cv2.drawChessboardCorners(img, GRID_SIZE, corners, ret)
+            cv2.drawChessboardCorners(img, GRID_SIZE, corners, ret)
 
         # Draw the other collected corners if we want to, we will collect the most recent capture later
         if draw_collected_corners:
@@ -77,4 +83,4 @@ def capture_calibration(camera):
 
 
 if __name__ == "__main__":
-    capture()
+    capture_calibration(Camera("precision_3490_builtin"))
