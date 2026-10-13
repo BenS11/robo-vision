@@ -40,21 +40,22 @@ def capture_calibration(camera):
 
     
     while True:
-        ret, img = camera.get_frame()
-        save_copy = img.copy()
+        img = camera.get_frame()
+        if img is  not None:
+            save_copy = img.copy()
 
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        found, corners = cv2.findChessboardCorners(gray, GRID_SIZE, None)
-        if found:
-            corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+            found, corners = cv2.findChessboardCorners(gray, GRID_SIZE, None)
+            if found:
+                corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
-            cv2.drawChessboardCorners(img, GRID_SIZE, corners, ret)
+                cv2.drawChessboardCorners(img, GRID_SIZE, corners, True)
 
-        # Draw the other collected corners if we want to, we will collect the most recent capture later
-        if draw_collected_corners:
-            for collected in collected_corners:
-                cv2.drawChessboardCorners(img, GRID_SIZE, collected, ret)
+            # Draw the other collected corners if we want to, we will collect the most recent capture later
+            if draw_collected_corners:
+                for collected in collected_corners:
+                    cv2.drawChessboardCorners(img, GRID_SIZE, collected, True)
        
 
 
