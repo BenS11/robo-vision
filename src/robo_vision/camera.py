@@ -37,7 +37,9 @@ class Camera:
         # final undistortion parameters
         self.map_x, self.map_y, self.roi, self.new_matrix = None, None, None, None
 
-        success, test_img = self.get_frame()
+        test_img = self.get_frame()
+
+        success = test_img is not None
 
         if not success or test_img is None or self.matrix is None or self.dist is None:
             logger.warning("Failed to calibrate camera %s", camera_id)
@@ -60,14 +62,14 @@ class Camera:
                 "Warning: Failed to capture frame from camera %s ",
                 self.id
             )
-            return False, None
+            return None
 
-        return success, frame
+        return frame
 
     def get_corrected_frame(self):
-        success, img = self.get_frame()
+        img = self.get_frame()
 
-        if not success or img is None:
+        if img is None:
             logger.warning(
                 "Failed to get frame from camera %s",
                 self.id,
@@ -79,7 +81,7 @@ class Camera:
                 "Attempted to get calibrated frame from uncalibrated camera %s",
                 self.id,
             )
-            return img
+            return False, img
 
         return True, cv2.remap(
             img,
@@ -148,9 +150,10 @@ if __name__ == "__main__":
     camera = Camera("precision_3490_builtin", find_camera_indices(10)[0])
 
     while cv2.waitKey(1) & 0xFF != ord('q'):
-        ret, img = camera.get_frame()
-        sucess, test_img = camera.get_corrected_frame()
-        if ret:
+        img = camera.get_frame()
+        success, test_img = camera.get_corrected_frame()
+
+        if img is not None:
             cv2.imshow("Regular", img)
-        if sucess:
+        if success:
             cv2.imshow("Corrected", test_img)
