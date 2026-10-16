@@ -83,12 +83,7 @@ class Camera:
             )
             return False, img
 
-        return True, cv2.remap(
-            img,
-            self.map_x,
-            self.map_y,
-            cv2.INTER_LINEAR,
-        )
+        return True, cv2.remap(img,self.map_x,self.map_y,cv2.INTER_LINEAR)
 
     def release(self):
         self.camera.release()
