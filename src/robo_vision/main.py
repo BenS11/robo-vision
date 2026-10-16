@@ -6,7 +6,7 @@ from robo_vision.camera import Camera
 
 
 def main():
-    camera = Camera()
+    camera = Camera("Example_Cam")
     frame_count = 0
     start_time = time.time()
 

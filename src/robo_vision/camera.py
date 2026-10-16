@@ -1,12 +1,9 @@
-import sys
-
 import cv2
 import platform
 import os
 import numpy as np
 import logging
-from robo_vision.exceptions import CameraOpenError
-from robo_vision.calibration.find_cameras import find_camera_indices
+from exceptions import CameraOpenError
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -15,10 +12,12 @@ logger = logging.getLogger(__name__)
 class Camera:
     open_cameras = []
 
-    def __init__(self, camera_name:str, camera_id=0):
+    def __init__(self, camera_name, camera_id:int=0):
         self.id = camera_id
         if camera_id in Camera.open_cameras:
-            raise CameraOpenError(f"Camera: {camera} ID: {camera_id } already open")
+            raise CameraOpenError(f"Camera {camera_id} already open")
+        else:
+            Camera.open_cameras.append(camera_id)
 
         if camera_name is None or camera_name == "":
             raise ValueError(f"Camera Name cannot be empty")
@@ -28,9 +27,7 @@ class Camera:
 
         # if camera failed to open, get out
         if not self.camera.isOpened():
-            raise CameraOpenError(f"Failed to open camera {camera_name}, ID: {camera_id}")
-
-        Camera.open_cameras.append(camera_id)
+            raise CameraOpenError(f"Failed to open camera {camera_id}, ID: {camera_id}")
 
         self.matrix, self.dist = self.__read_calibration()
 
@@ -39,9 +36,7 @@ class Camera:
 
         test_img = self.get_frame()
 
-        success = test_img is not None
-
-        if not success or test_img is None or self.matrix is None or self.dist is None:
+        if test_img is None or self.matrix is None or self.dist is None:
             logger.warning("Failed to calibrate camera %s", camera_id)
             self.calibrated = False
         else:
@@ -52,7 +47,7 @@ class Camera:
             self.new_matrix, self.roi = cv2.getOptimalNewCameraMatrix(self.matrix, self.dist, (w, h), 1, (w, h))
 
             self.map_x, self.map_y = cv2.initUndistortRectifyMap(self.matrix, self.dist, None, self.new_matrix, (w, h),
-                                                                 cv2.CV_32FC1);
+                                                                 5);
 
     def get_frame(self):
         success, frame = self.camera.read()
@@ -70,20 +65,22 @@ class Camera:
         img = self.get_frame()
 
         if img is None:
-            logger.warning(
-                "Failed to get frame from camera %s",
-                self.id,
-            )
-            return False, None
+            logger.warning("Warning: Failed to get frame from camera %s", self.id)
+            return None
 
-        if not self.is_calibrated():
+        elif not self.is_calibrated():
             logger.warning(
-                "Attempted to get calibrated frame from uncalibrated camera %s",
-                self.id,
+                "Warning: Attempted to get calibrated frame without calibrating camera %s",
+                str(self.id)
             )
-            return False, img
+            return img
 
-        return True, cv2.remap(img,self.map_x,self.map_y,cv2.INTER_LINEAR)
+        return cv2.remap(
+            img,
+            self.map_x,
+            self.map_y,
+            cv2.INTER_LINEAR,
+        )
 
     def release(self):
         self.camera.release()
@@ -95,26 +92,22 @@ class Camera:
     def get_calibration_matrix(self):
         if not self.is_calibrated():
             logger.warning("Warning: Attempted to access calibration matrix of uncalibrated camera")
+            return None
 
         return self.matrix
 
     def get_camera_info_path(self):
-        return Camera.get_camera_directory_path_with_name(self.get_name())
-
-    @staticmethod
-    def get_camera_directory_path_with_name(camera_name):
+        # root directory
         project_dir = Path(__file__).resolve().parent.parent.parent
-        return project_dir / "cameras" / str(camera_name)
-
-
+        return project_dir / "cameras" / self.get_name()
 
     def __read_calibration(self):
-        path = os.path.join(self.get_camera_info_path(), "calibration",  "calibration_data.npz")
+        path = os.path.join(self.get_camera_info_path(), "calibration", "calibration.npz")
 
         try:
             with np.load(path) as data:
-                mtx = data["matrix"]
-                dist = data["distortion"]
+                mtx = data["mtx"]
+                dist = data["dist"]
 
         except (OSError, ValueError, KeyError) as e:
             logger.warning("Could not load camera calibration from %s: %s", path, e)
@@ -139,16 +132,3 @@ def get_camera_backend():
         return cv2.CAP_V4L2
     else:
         return cv2.CAP_ANY
-
-
-if __name__ == "__main__":
-    camera = Camera("precision_3490_builtin", find_camera_indices(10)[0])
-
-    while cv2.waitKey(1) & 0xFF != ord('q'):
-        img = camera.get_frame()
-        success, test_img = camera.get_corrected_frame()
-
-        if img is not None:
-            cv2.imshow("Regular", img)
-        if success:
-            cv2.imshow("Corrected", test_img)
